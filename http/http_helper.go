@@ -1,4 +1,4 @@
-package common
+package http
 
 import (
 	"bytes"
@@ -6,8 +6,6 @@ import (
 	"mime/multipart"
 	"net/http"
 )
-
-
 
 func Post(url string, params map[string]string) (string, error) {
 
