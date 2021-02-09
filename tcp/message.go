@@ -4,56 +4,67 @@ const (
 	// 消息
 	businessesMsg = 1
 	kitMsg = 2
+	// 消息类型
+	cmdRegister = "register"
 	// 数据帧头长度
-	msgHeaderLength uint16 = 4
+	msgHeaderLength uint16 = 300
 )
 
 const kitMsgRegister = "kitMsgRegister"
 
 type Message struct {
-	header *Header
-	payload *[]byte
+	Header *Header
+	Payload *[]byte
 }
 
 type Header struct {
 	// 用户id
-	uid [64]byte
+	Uid string
 	// token
-	token [64]byte
+	Token string
 	// IP
-	ip [32]byte
+	Ip string
 	// 流量标记(用于灰度等)
-	tag uint8
+	Tag uint8
 	// 全链路压测
-	mTest [32]byte
+	MTest string
 	// 会话ID
-	sessionId [32]byte
+	SessionId string
 	// 消息类型
-	msgCode uint8
+	MsgCode uint8
 	// 消息ID
-	msgId [32]byte
+	MsgId string
 	// 命令号
-	cmd [64]byte
+	Cmd string
 	// traceId 链路追踪
-	traceId [64]byte
+	TraceId string
 	// 服务名称
-	serverName [32]byte
+	ServerName string
 	// 服务版本
-	serverVersion [32]byte
+	ServerVersion string
+	// 扩展字段
+	Expend string
 	// body 长度，在读数据的时候有用
-	payloadLen uint16
+	PayloadLen uint16
 }
 
 func NewRegisterMessage(serverVersion string, serverName string) *Message {
 
+	payload := make([]byte, 300)
+	for i := range payload {
+		payload[i] = 255
+	}
 	header := &Header{
-		payloadLen: 0,
-		msgCode: kitMsg,
-		//uid: []byte(serverVersion),
+		PayloadLen: uint16(len(payload)),
+		MsgCode: kitMsg,
+		Cmd: kitMsgRegister,
+		ServerVersion: serverVersion,
+		ServerName: serverName,
 	}
 
+
 	return &Message{
-		header: header,
-		payload: nil,
+		Header: header,
+		Payload: &payload,
 	}
 }
