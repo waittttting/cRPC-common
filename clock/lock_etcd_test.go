@@ -11,7 +11,7 @@ var (
 	etcdHosts = []string{"127.0.0.1:2379"}
 )
 
-func TestInitLock(t *testing.T) {
+func TestInitEtcdLock(t *testing.T) {
 
 	// todo: etcd host 填写错误时，etcd 调用方法无超时，无返回
 	lock1, err := EtcdLock(etcdHosts)

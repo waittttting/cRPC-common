@@ -17,11 +17,13 @@ type Lock interface {
 	Close() error
 }
 
+
 type CXLock struct {
 	lock Lock
 	lt lockType
 	locked bool
 	lease int64
+	singleChan chan int
 }
 
 /**
@@ -33,15 +35,40 @@ func (cl *CXLock) SetLease(lease int64) {
 	cl.lease = lease
 }
 
+
+/**
+ * @Description: 获取 etcd cp 模型的锁
+ * @param host etcd 集群地址
+ * @return *CXLock
+ * @return error
+ */
 func EtcdLock(host []string) (*CXLock, error) {
 	if len(host) <= 0 {
-		return nil, errEtcdHost
+		return nil, errHostLen
 	}
 	cl := &CXLock{
 		locked: false,
+		singleChan: make(chan int, 0),
 	}
 	cl.lt = lockTypeEtcdCP
 	lock, err := newEtcdLock(host)
+	if err != nil {
+		return nil, err
+	}
+	cl.lock = lock
+	return cl, nil
+}
+
+func RedisLock(host string, pwd string, dbIndex int) (*CXLock, error) {
+	if len(host) <= 0 {
+		return nil, errHostLen
+	}
+	cl := &CXLock{
+		locked: false,
+		singleChan: make(chan int, 0),
+	}
+	cl.lt = lockTypeRedisAP
+	lock, err := newRedisLock(host, pwd, dbIndex, cl.singleChan)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +84,9 @@ func EtcdLock(host []string) (*CXLock, error) {
  * @return error
  */
 func (cl *CXLock) Acquire(key string) (bool, error) {
-
+	if key == "" {
+		return false, errKeyLen
+	}
 	if cl.locked {
 		return false, errSameInstance
 	}
@@ -120,6 +149,9 @@ func (cl *CXLock) AcquireWithRetry(key string, interval int, maxRetry int) (bool
  * @receiver lc
  */
 func (cl *CXLock) Release() (bool, error) {
+	if !cl.locked {
+		return false, errReleaseUnLockedKey
+	}
 	ok, err := cl.lock.UnLock()
 	if ok {
 		cl.locked = false

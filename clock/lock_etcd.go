@@ -31,9 +31,6 @@ func newEtcdLock(hosts []string) (*etcdLock, error) {
 
 func (el *etcdLock) Lock(key string, value string, lease int64) (bool, error) {
 
-	if key == "" {
-		return false, errKeyLen
-	}
 	// 查看 key 是否存在
 	// todo: etcd host 填写错误时，etcd 调用方法无超时，无返回
 	gr, err := el.client.Get(context.Background(), key)

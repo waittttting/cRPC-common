@@ -16,9 +16,12 @@ func newLockError(err string) error {
 }
 
 var (
-	errKeyLen     	= newLockError("key len is 0")
-	errKeyExist   	= newLockError("key already exist")
-	errSameInstance	= newLockError("try to get lock use same instance")
- 	errLockInit   	= newLockError("lock init err, lock can not be nil")
- 	errEtcdHost   	= newLockError("etcd host len can not be 0")
+	errKeyLen     				= newLockError("key len is 0")
+	errKeyExist   				= newLockError("key already exist")
+	errSameInstance				= newLockError("try to get lock use same instance")
+ 	errLockInit   				= newLockError("lock init err, lock can not be nil")
+ 	errHostLen   				= newLockError("host len can not be 0")
+ 	errRedisNil					= newLockError("redis: nil")
+	errRedisDel					= newLockError("redis del int ret not be 1")
+	errReleaseUnLockedKey		= newLockError("the lock of the key not locked")
 )
