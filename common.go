@@ -12,7 +12,11 @@ type CXError struct {
 	ErrMsg  string
 }
 
-func NewError(errCode int64, errMsg string) *CXError {
+func (ce *CXError) Error() string {
+	return ce.ErrMsg
+}
+
+func NewError(errCode int64, errMsg string) error {
 	return &CXError{
 		ErrCode: errCode,
 		ErrMsg: errMsg,

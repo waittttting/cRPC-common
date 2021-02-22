@@ -2,7 +2,6 @@ package clock
 
 import (
 	"context"
-	"errors"
 	"go.etcd.io/etcd/clientv3"
 	"time"
 )
@@ -18,7 +17,7 @@ func newEtcdLock(hosts []string) (*etcdLock, error) {
 
 	config := clientv3.Config{
 		Endpoints:   hosts,
-		DialTimeout: 5 * time.Second,
+		DialTimeout: 1 * time.Second,
 	}
 	client, err := clientv3.New(config)
 	if err != nil {
@@ -33,15 +32,16 @@ func newEtcdLock(hosts []string) (*etcdLock, error) {
 func (el *etcdLock) Lock(key string, value string, lease int64) (bool, error) {
 
 	if key == "" {
-		return false, errors.New("key len is 0")
+		return false, errKeyLen
 	}
 	// 查看 key 是否存在
+	// todo: etcd host 填写错误时，etcd 调用方法无超时，无返回
 	gr, err := el.client.Get(context.Background(), key)
 	if err != nil {
 		return false, err
 	}
 	if len(gr.Kvs) > 0 {
-		return false, errors.New("key already exist")
+		return false, errKeyExist
 	}
 	// 申请租约
 	resp, err := el.client.Grant(context.Background(), lease)
@@ -67,6 +67,9 @@ func (el *etcdLock) UnLock() (bool, error) {
 	if _, err := el.client.Revoke(context.Background(), el.leaseID); err != nil {
 		return false, err
 	}
-	el.client.Close()
 	return true, nil
+}
+
+func (el *etcdLock) Close() error {
+	return el.client.Close()
 }
