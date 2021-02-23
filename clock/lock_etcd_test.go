@@ -130,7 +130,7 @@ func TestEtcdLockAcquireWithRetry(t *testing.T) {
 	} else {
 		t.Logf("get lock fail")
 	}
-	ok = testEtcdLockAcquireWithRetry(t,1, 6)
+	ok = testEtcdLockAcquireWithRetry(t,2, 13)
 	if !ok {
 		t.Error("get lock error")
 	} else {
@@ -143,7 +143,7 @@ func testEtcdLockAcquireWithRetry(t *testing.T, interval int, maxRetry int) bool
 	if err != nil {
 		t.Fatalf("create lock1 error: %v", err)
 	}
-	lock1.SetLease(5)
+	lock1.SetLease(18)
 	ok, err := lock1.Acquire(testKey1)
 	if err != nil || !ok {
 		t.Fatalf("lock1 acquire error: %v", err)
@@ -152,17 +152,25 @@ func testEtcdLockAcquireWithRetry(t *testing.T, interval int, maxRetry int) bool
 	go func() {
 		lock2, err := EtcdLock(etcdHosts)
 		if err != nil {
-			t.Fatalf("create lock1 error: %v", err)
+			t.Fatalf("create lock2 error: %v", err)
 		}
+		t.Log("lock2 try to get lock")
 		ok, err = lock2.AcquireWithRetry(testKey1, interval, maxRetry)
 		if err != nil {
 			t.Fatalf("lock2 acquireWithRetry error: %v", err)
 		}
+		if ok {
+			t.Log("lock2 get lock")
+		} else {
+			t.Log("lock2 not get lock")
+		}
 	}()
-	time.Sleep(5 * time.Second)
+	time.Sleep(20 * time.Second)
+	t.Log("lock1 try to release")
 	lock1.Release()
+	t.Log("lock1 released")
 	lock1.Close()
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 	return ok
 }
 

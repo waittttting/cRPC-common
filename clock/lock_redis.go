@@ -31,18 +31,13 @@ func newRedisLock(host string, pwd string, dbIndex int, singleChan chan int) (*r
 }
 
 func (rl *redisLock) Lock(key string, value string, lease int64) (bool, error) {
-	// 查看 key 是否存在
-	_, err := rl.client.Get(key).Result()
-	if err != nil && err.Error() != errRedisNil.Error() {
-		return false, err
-	}
-	// key 已经存在
-	if err == nil {
-		return false, errKeyExist
-	}
+
 	ret, err := rl.client.SetNX(key, value, time.Duration(lease) * time.Second).Result()
 	if err != nil {
 		return false, err
+	}
+	if !ret {
+		return false, errKeyExist
 	}
 	if !ret {
 		return false, nil
@@ -57,9 +52,10 @@ func (rl *redisLock) Lock(key string, value string, lease int64) (bool, error) {
 					break
 				}
 			default:
+				time.Sleep(time.Duration(lease / 3 * 2) * time.Second)
+				_, _ = rl.client.Set(key, value, time.Duration(lease) * time.Second).Result()
+				// todo: 续租错误通过 chan 返回给应用层~~
 			}
-			time.Sleep(time.Duration(lease / 3 * 2) * time.Second)
-			ret, err = rl.client.SetNX(key, value, time.Duration(lease) * time.Second).Result()
 		}
 	}(rl.singleChan)
 	return true, nil

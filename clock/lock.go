@@ -48,7 +48,7 @@ func EtcdLock(host []string) (*CXLock, error) {
 	}
 	cl := &CXLock{
 		locked: false,
-		singleChan: make(chan int, 0),
+		singleChan: make(chan int, 1),
 	}
 	cl.lt = lockTypeEtcdCP
 	lock, err := newEtcdLock(host)
@@ -65,7 +65,7 @@ func RedisLock(host string, pwd string, dbIndex int) (*CXLock, error) {
 	}
 	cl := &CXLock{
 		locked: false,
-		singleChan: make(chan int, 0),
+		singleChan: make(chan int, 1),
 	}
 	cl.lt = lockTypeRedisAP
 	lock, err := newRedisLock(host, pwd, dbIndex, cl.singleChan)
