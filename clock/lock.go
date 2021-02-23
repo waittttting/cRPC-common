@@ -37,7 +37,7 @@ func (cl *CXLock) SetLease(lease int64) {
 
 
 /**
- * @Description: 获取 etcd cp 模型的锁
+ * @Description: 基于 etcd 的 CP 分布式锁
  * @param host etcd 集群地址
  * @return *CXLock
  * @return error
@@ -59,6 +59,14 @@ func EtcdLock(host []string) (*CXLock, error) {
 	return cl, nil
 }
 
+/**
+ * @Description: 基于 redis 的 AP 分布式锁
+ * @param host redis 地址
+ * @param pwd 密码
+ * @param dbIndex 索引
+ * @return *CXLock
+ * @return error
+ */
 func RedisLock(host string, pwd string, dbIndex int) (*CXLock, error) {
 	if len(host) <= 0 {
 		return nil, errHostLen
