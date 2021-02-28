@@ -1,19 +1,24 @@
 package tcp
 
 const (
-	// 消息
-	businessesMsg = 1
-	kitMsg = 2
-	// 消息类型
-	cmdRegister = "register"
+
+	// 业务消息
+	msgTypeBusinesses = 1
+
+	// 框架消息
+	msgTypekit = 2
+
+	// client 注册到 control center
+	msgKitRegisterPing = "msgKitRegisterPing"
+	// control center 回复 client 的注册消息
+	msgKitRegisterPong = "msgKitRegisterPong"
+
 	// 数据帧头长度
-	msgHeaderLength uint16 = 300
+	msgHeaderLength uint16 = 320
 )
 
-const kitMsgRegister = "kitMsgRegister"
-
 type Message struct {
-	Header *Header
+	Header  *Header
 	Payload *[]byte
 }
 
@@ -30,7 +35,7 @@ type Header struct {
 	MTest string
 	// 会话ID
 	SessionId string
-	// 消息类型
+	// 消息类型 (框架消息/业务消息)
 	MsgCode uint8
 	// 消息ID
 	MsgId string
@@ -48,23 +53,31 @@ type Header struct {
 	PayloadLen uint16
 }
 
-func NewRegisterMessage(serverVersion string, serverName string) *Message {
+func MsgRegisterPing(serverVersion string, serverName string) *Message {
 
-	payload := make([]byte, 300)
-	for i := range payload {
-		payload[i] = 255
-	}
 	header := &Header{
-		PayloadLen: uint16(len(payload)),
-		MsgCode: kitMsg,
-		Cmd: kitMsgRegister,
+		PayloadLen:    0,
+		MsgCode:       msgTypekit,
+		Cmd:           msgKitRegisterPing,
 		ServerVersion: serverVersion,
-		ServerName: serverName,
+		ServerName:    serverName,
 	}
-
 
 	return &Message{
-		Header: header,
-		Payload: &payload,
+		Header:  header,
+		Payload: nil,
+	}
+}
+
+func MsgRegisterPong() *Message {
+
+	header := &Header{
+		PayloadLen: 0,
+		MsgCode:    msgTypekit,
+		Cmd:        msgKitRegisterPong,
+	}
+	return &Message{
+		Header:  header,
+		Payload: nil,
 	}
 }
