@@ -2,19 +2,19 @@ package twheel
 
 import (
 	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
 
 type TimeWheel struct {
-	wheel      []map[interface{}]interface{}
-	indexMap   map[interface{}]int
-	curIndex   int
-	wheelCap   int
+	slots      []map[interface{}]interface{}
+	posMap     map[interface{}]int
+	curPos     int
+	slotsCount int
 	lock       sync.Mutex
 	noticeChan chan interface{}
-	timeout    int
 }
 
 /**
@@ -23,33 +23,35 @@ type TimeWheel struct {
  * @param noticeChanLen 元素超时回调队列
  * @return *TimeWheel
  */
-func New(cap int, timeout int, noticeChan chan interface{}) (*TimeWheel, error) {
+func New(slotsCount int, noticeChan chan interface{}) (*TimeWheel, error) {
 
-	if cap <= 0 {
+	if slotsCount <= 0 {
 		return nil, errors.New("cap can not <= 0")
 	}
 
-	if timeout <= 0 {
-		return nil, errors.New("timeout can not <= 0")
-	}
-
 	return &TimeWheel{
-		wheelCap:   cap,
-		wheel:      make([]map[interface{}]interface{}, cap),
-		curIndex:   0,
+		// 存储数据的槽
+		slots: make([]map[interface{}]interface{}, slotsCount),
+		// 槽数量
+		slotsCount: slotsCount,
+		// tw 当前指针
+		curPos: 0,
+		// 到期回调 chan
 		noticeChan: noticeChan,
-		indexMap:   make(map[interface{}]int),
-		timeout:    timeout,
+		// 元素位置 map
+		posMap: make(map[interface{}]int),
 	}, nil
 }
 
 func (tw *TimeWheel) Start() {
 	go func() {
+		ticker := time.Tick(1 * time.Second)
 		for {
-			time.Sleep(1 * time.Second)
-			tw.curIndex = (tw.curIndex + 1) % tw.wheelCap
+			<-ticker
 			tw.lock.Lock()
-			curBucket := tw.wheel[tw.curIndex]
+			tw.curPos = (tw.curPos + 1) % tw.slotsCount
+			fmt.Println("cur index", tw.curPos)
+			curBucket := tw.slots[tw.curPos]
 			if len(curBucket) == 0 {
 				tw.lock.Unlock()
 				continue
@@ -59,48 +61,64 @@ func (tw *TimeWheel) Start() {
 				// 1. 通知
 				select {
 				case tw.noticeChan <- value:
+					timer.Reset(0)
 				case <-timer.C:
 					logrus.Errorf("item send to noticeChan timeout")
 				}
 				// 2. 删除 index map 中的数据
-				delete(tw.indexMap, value)
+				delete(tw.posMap, value)
 			}
 			// 3. 清空 curIndex 上的 map
-			tw.wheel[tw.curIndex] = make(map[interface{}]interface{})
+			tw.slots[tw.curPos] = make(map[interface{}]interface{})
 			tw.lock.Unlock()
 		}
 	}()
 }
 
-func (tw *TimeWheel) Add(item interface{}) {
+func (tw *TimeWheel) Add(item interface{}, timeout int) error {
+	if timeout <= 0 {
+		return errors.New("timeout can not <= 0")
+	}
 	tw.lock.Lock()
 	defer tw.lock.Unlock()
-	itemIndex := (tw.curIndex + tw.timeout) % tw.wheelCap
-	tw.indexMap[item] = itemIndex
-	if tw.wheel[itemIndex] == nil {
-		tw.wheel[itemIndex] = map[interface{}]interface{}{}
+	itemIndex := (tw.curPos + timeout) % tw.slotsCount
+	tw.posMap[item] = itemIndex
+	if tw.slots[itemIndex] == nil {
+		tw.slots[itemIndex] = map[interface{}]interface{}{}
 	}
-	tw.wheel[itemIndex][item] = item
+	tw.slots[itemIndex][item] = item
+	return nil
 }
 
 func (tw *TimeWheel) Delete(item interface{}) {
 	tw.lock.Lock()
 	defer tw.lock.Unlock()
-	itemIndex := tw.indexMap[item]
-	delete(tw.wheel[itemIndex], item)
-	delete(tw.indexMap, item)
+	oldPos := tw.posMap[item]
+	// todo: if oldPos == nil
+	delete(tw.slots[oldPos], item)
+	delete(tw.posMap, item)
 }
 
-func (tw *TimeWheel) Refresh(item interface{}) {
+func (tw *TimeWheel) Refresh(item interface{}, timeout int) error {
+
+	if timeout <= 0 {
+		return errors.New("timeout can not <= 0")
+	}
+
 	tw.lock.Lock()
 	defer tw.lock.Unlock()
-	curIndex := tw.indexMap[item]
-	delete(tw.wheel[curIndex], item)
-	delete(tw.indexMap, item)
-	newIndex := (curIndex + tw.timeout) % tw.wheelCap
-	tw.indexMap[item] = newIndex
-	if tw.wheel[newIndex] == nil {
-		tw.wheel[newIndex] = map[interface{}]interface{}{}
+	oldPos := 0
+	ok := false
+	if oldPos, ok = tw.posMap[item]; !ok {
+		return errors.New(" item not find in time wheel slots ")
 	}
-	tw.wheel[newIndex][item] = item
+	delete(tw.slots[oldPos], item)
+	delete(tw.posMap, item)
+	newPos := (tw.curPos + timeout) % tw.slotsCount
+	tw.posMap[item] = newPos
+	if tw.slots[newPos] == nil {
+		tw.slots[newPos] = map[interface{}]interface{}{}
+	}
+	tw.slots[newPos][item] = item
+	return nil
 }

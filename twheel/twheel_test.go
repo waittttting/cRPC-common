@@ -26,7 +26,7 @@ func TestNew(t *testing.T) {
 
 func testNew(ch chan interface{}) (*TimeWheel, error) {
 
-	return New(20, timeout, ch)
+	return New(20, ch)
 }
 
 type testIns struct {
@@ -53,24 +53,20 @@ func TestTimeWheel_Add(t *testing.T) {
 		t.Fatalf("create tw err %v", err)
 	}
 	tw.Start()
-	tw.Add(new(testIns))
+	err = tw.Add(new(testIns), 5)
+	if err != nil {
+		t.Fatalf("add ins err %v", err)
+	}
 	addTime = time.Now()
 	time.Sleep(10 * time.Second)
 }
 
 func TestTimeWheel_Refresh(t *testing.T) {
 
-	var addTime time.Time
 	ch := make(chan interface{}, 20)
 	go func() {
-		i := 0
-		for msg := range ch {
-			i++
-			t.Logf("i = %d, %v", i, msg)
-			diff := int(time.Now().Sub(addTime).Seconds())
-			if diff != timeout*2 {
-				t.Error("timeout was wrong")
-			}
+		for range ch {
+			t.Error("err")
 		}
 	}()
 
@@ -80,10 +76,22 @@ func TestTimeWheel_Refresh(t *testing.T) {
 	}
 	tw.Start()
 	ins := new(testIns)
-	tw.Add(ins)
-	addTime = time.Now()
-	tw.Refresh(ins)
-	time.Sleep(15 * time.Second)
+	err = tw.Add(ins, 6)
+	if err != nil {
+		t.Fatalf("add ins err %v", err)
+	}
+	go func() {
+		ticker := time.Tick(4 * time.Second)
+		for {
+			<-ticker
+			err = tw.Refresh(ins, 6)
+			if err != nil {
+				t.Errorf("refresh ins err %v", err)
+			}
+			t.Log("refresh")
+		}
+	}()
+	select {}
 }
 
 func TestTimeWheel_Delete(t *testing.T) {
@@ -101,7 +109,10 @@ func TestTimeWheel_Delete(t *testing.T) {
 	}
 	tw.Start()
 	ins := new(testIns)
-	tw.Add(ins)
+	err = tw.Add(ins, 5)
+	if err != nil {
+		t.Fatalf("add ins err %v", err)
+	}
 	tw.Delete(ins)
 	time.Sleep(10 * time.Second)
 }
