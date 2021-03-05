@@ -2,7 +2,6 @@ package twheel
 
 import (
 	"errors"
-	"fmt"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -50,7 +49,6 @@ func (tw *TimeWheel) Start() {
 			<-ticker
 			tw.lock.Lock()
 			tw.curPos = (tw.curPos + 1) % tw.slotsCount
-			fmt.Println("cur index", tw.curPos)
 			curBucket := tw.slots[tw.curPos]
 			if len(curBucket) == 0 {
 				tw.lock.Unlock()
