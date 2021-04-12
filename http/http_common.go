@@ -1,40 +1,37 @@
 package http
 
+import (
+	"github.com/waittttting/cRPC-common/cerr"
+)
 
-
-type JSONResponse struct {
-	Code  	int64      `json:"code"`
-	Msg 	string      `json:"msg"`
-	Desc    string      `json:"desc"`
-	Data    interface{} `json:"data"`
+type CResponse struct {
+	// 消息码
+	Code int64 `json:"code"`
+	// 消息
+	Msg string `json:"msg"`
+	// 数据
+	Data interface{} `json:"data"`
 }
 
-func NewJSONResponse(code int64, msg string, desc string, Data interface{}) *JSONResponse {
-	return &JSONResponse{
-		Code: code,
-		Msg:  msg,
-		Desc: desc,
-		Data: Data,
+const (
+	BusinessErr = 1
+	BusinessOk  = 0
+)
+
+func NewResponseWithErr(err *cerr.CXError) *CResponse {
+
+	return &CResponse{
+		Code: BusinessErr,
+		Msg:  err.ErrMsg,
+		Data: err,
 	}
 }
 
-func NewJSONResponseErr(code int64, msg string, desc string, Data interface{}) *JSONResponse {
-	return &JSONResponse{
-		Code: code,
-		Msg:  msg,
-		Desc: desc,
-		Data: Data,
+func NewResponseWithData(data interface{}) *CResponse {
+
+	return &CResponse{
+		Code: BusinessOk,
+		Msg:  "",
+		Data: data,
 	}
 }
-
-func NewJSONResponseSuccess(code int64, msg string, desc string, Data interface{}) *JSONResponse {
-	return &JSONResponse{
-		Code: code,
-		Msg:  msg,
-		Desc: desc,
-		Data: Data,
-	}
-}
-
-
-
