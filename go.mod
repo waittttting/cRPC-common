@@ -3,6 +3,7 @@ module github.com/waittttting/cRPC-common
 go 1.14
 
 require (
+	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-00010101000000-000000000000 // indirect
@@ -14,7 +15,6 @@ require (
 	go.etcd.io/etcd v3.3.22+incompatible
 	go.uber.org/zap v1.16.0 // indirect
 	google.golang.org/grpc v1.35.0 // indirect
-//github.com/douyu/jupiter v0.2.1
 )
 
 replace (
